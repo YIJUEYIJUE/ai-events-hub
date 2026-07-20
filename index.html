@@ -7,9 +7,9 @@
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AI 赛事库 · AI Competitions Hub</title>
-<meta name="description" content="汇集 AI 赛事、AI 电影节与 AI 设计类比赛的公开目录：比赛简介、官方报名入口、奖项奖金、截止时间与地区分类，一搜即达。共收录上千条赛事。">
+<meta name="description" content="汇集 AI 赛事、AI 电影节与 AI 设计类比赛的公开目录：比赛简介、官方报名入口、奖项奖金、截止时间与地区分类。共收录上千条赛事。">
 <meta name="theme-color" content="#f7f0df">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 <div class="app">
@@ -22,49 +22,28 @@
     </div>
     <label class="search"><span>⌕</span><input id="search" placeholder="搜索赛事名称 / 类型 / 地区 / 说明 / 官网" autocomplete="off"></label>
     <div class="mastActions">
+      <button class="ghostBtn" id="filterToggle">筛选</button>
       <button class="ghostBtn" id="canvasBtn">展览画布</button>
     </div>
   </header>
 
   <!-- ============ HERO ============ -->
   <section class="hero paper">
-    <div class="heroText">
-      <div class="stamp"><i></i><span id="stampText">实时收录 · 比赛 / 官网 / 展示</span></div>
-      <h1>AI 赛事<br>一站式目录</h1>
-      <p class="lead">把散落在各处的 AI 创作赛事、AI 电影节与 AI 设计比赛，整理成同一套可检索的目录。每张卡片都附<b>官方报名入口</b>、<b>奖项奖金</b>、<b>截止时间</b>与<b>地区</b>——参赛、观展还是做研究，都能快速定位。</p>
+    <div class="heroInner">
+      <div class="heroText">
+        <div class="stamp"><i></i><span>实时收录 · 比赛 / 官网 / 展示</span></div>
+        <h1>AI 赛事<br>一站式目录</h1>
+        <p class="lead">把 AI 创作赛事、AI 电影节与 AI 设计比赛整理成可检索的目录。每张卡片都附<b>官方报名入口</b>、<b>奖项奖金</b>、<b>截止时间</b>与<b>地区</b>——参赛、观展或研究，都能快速定位。</p>
+      </div>
+      <div class="heroStats" id="stats"></div>
     </div>
-    <div class="heroStats" id="stats"></div>
   </section>
 
   <!-- ============ COLLECTION TABS ============ -->
   <nav class="tabbar" id="tabs"></nav>
 
-  <!-- ============ FILTER BAR ============ -->
-  <div class="filterbar">
-    <div class="filterGroup" id="gStatus">
-      <span class="fgLabel">状态</span>
-      <div class="chips" id="fStatus"></div>
-    </div>
-    <div class="filterGroup" id="gType">
-      <span class="fgLabel">类型</span>
-      <div class="chips" id="fType"></div>
-      <button class="moreBtn" id="moreType" hidden>更多 ▾</button>
-    </div>
-    <div class="filterGroup" id="gRegion">
-      <span class="fgLabel">地区</span>
-      <div class="chips" id="fRegion"></div>
-      <button class="moreBtn" id="moreRegion" hidden>更多 ▾</button>
-    </div>
-    <div class="filterGroup sortGroup">
-      <span class="fgLabel">排序</span>
-      <select id="sort" class="sortSel">
-        <option value="deadline">截止时间 · 近→远</option>
-        <option value="name">名称 · A→Z</option>
-        <option value="recent">最近收录</option>
-      </select>
-    </div>
-    <button class="clearBtn" id="clearBtn" hidden>清除筛选 ✕</button>
-  </div>
+  <!-- ============ ACTIVE FILTERS ============ -->
+  <section class="activeFilters" id="activeFilters" hidden></section>
 
   <!-- ============ RESULTS ============ -->
   <main class="content">
@@ -75,6 +54,42 @@
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" hidden>没有符合条件的赛事，试试放宽筛选条件 🔍</div>
   </main>
+
+  <!-- ============ FILTER DRAWER ============ -->
+  <aside class="drawer" id="drawer">
+    <div class="drawerHeader">
+      <h3>筛选赛事</h3>
+      <button class="closeDrawer" id="closeDrawer">×</button>
+    </div>
+    <div class="drawerBody">
+      <div class="drawerSection">
+        <span class="fgLabel">状态 Status</span>
+        <div class="chips" id="fStatus"></div>
+      </div>
+      <div class="drawerSection">
+        <span class="fgLabel">类型 Type</span>
+        <div class="chips" id="fType"></div>
+        <button class="moreBtn" id="moreType" hidden>更多 ▾</button>
+      </div>
+      <div class="drawerSection">
+        <span class="fgLabel">地区 Region</span>
+        <div class="chips" id="fRegion"></div>
+        <button class="moreBtn" id="moreRegion" hidden>更多 ▾</button>
+      </div>
+      <div class="drawerSection">
+        <span class="fgLabel">排序 Sort</span>
+        <select id="sort" class="sortSel">
+          <option value="deadline">截止时间 · 近→远</option>
+          <option value="name">名称 · A→Z</option>
+          <option value="recent">最近收录</option>
+        </select>
+      </div>
+    </div>
+    <div class="drawerFoot">
+      <button class="clearBtn" id="clearBtn">清除筛选</button>
+    </div>
+  </aside>
+  <div class="drawerOverlay" id="drawerOverlay"></div>
 
   <!-- ============ CANVAS / SHOWCASE ============ -->
   <section class="canvas" id="canvas">
@@ -115,6 +130,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

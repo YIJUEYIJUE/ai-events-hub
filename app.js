@@ -2,55 +2,51 @@
   "use strict";
   const DATA = window.EVENT_DATA || {meta:{},items:[]};
   const items = DATA.items || [];
-  const meta = DATA.meta || {};
   const COLORS = {'AI赛事':'#173fe8','AI电影节':'#e96450','AI设计类':'#1f9e8f'};
+  const COLS = ['AI赛事','AI电影节','AI设计类'];
   const STATUSES = ['进行中','已截止','待公布'];
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
-  // ---------- helpers ----------
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function colColor(c){return COLORS[c]||'#888';}
-  function colClass(c){return 'c-'+(c||'').replace(/[^一-龥A-Za-z]/g,'');}
   function regionText(arr){return (arr||[]).join(' · ');}
   function truncate(s,n){s=String(s||'');return s.length>n?s.slice(0,n)+'…':s;}
+  function nowTs(){return Date.now();}
 
-  // ---------- state ----------
-  const state = {collection:'ALL', q:'', status:new Set(), type:new Set(), region:new Set()};
+  const state = {collection:'ALL', q:'', status:new Set(), type:new Set(), region:new Set(), sort:'deadline', typeOpen:false, regionOpen:false};
 
-  // ---------- cover ----------
-  function buildCover(){
+  // ---------- hero stats ----------
+  function buildStats(){
     const byColl = {};
     items.forEach(it=>{byColl[it.collection]=(byColl[it.collection]||0)+1;});
-    const total = items.length;
-    const withSite = items.filter(i=>i.website).length;
     const openNow = items.filter(i=>i.status==='进行中').length;
-    const stats = [
-      {b:total, s:'赛事总数 EVENTS'},
-      {b:Object.keys(byColl).length, s:'大类 CATEGORIES'},
-      {b:openNow, s:'进行中 OPEN'},
-      {b:withSite, s:'附官网 LINKED'},
+    const withSite = items.filter(i=>i.website).length;
+    const cards = [
+      {b:items.length, s:'赛事总数 EVENTS', c:null},
+      {b:COLS.length, s:'大类 CATEGORIES', c:null},
+      {b:openNow, s:'进行中 OPEN', c:'#2e7d32'},
+      {b:withSite, s:'附官网 LINKED', c:'#173fe8'},
     ];
-    $('#stats').innerHTML = stats.map(x=>`<div class="stat"><b>${x.b}</b><span>${x.s}</span></div>`).join('');
-    // marquee of names
-    const pick = items.slice().sort(()=>Math.random()-0.5).slice(0,60);
-    const track = pick.concat(pick).map(i=>`<span class="chip"><span class="dot" style="background:${colColor(i.collection)}"></span>${esc(i.name)}</span>`).join('');
-    $('#marquee').innerHTML = track;
+    $('#stats').innerHTML = cards.map(x=>{
+      const dot = x.c?`<span class="accent" style="background:${x.c}"></span>`:'';
+      return `<div class="stat"><b>${dot}${x.b}</b><span>${x.s}</span></div>`;
+    }).join('');
   }
 
-  // ---------- tabs (collection) ----------
+  // ---------- tabs ----------
   function buildTabs(){
     const counts = {ALL:items.length};
-    ['AI赛事','AI电影节','AI设计类'].forEach(c=>counts[c]=items.filter(i=>i.collection===c).length);
-    const tabs = [{k:'ALL',label:'全部赛事'}].concat(['AI赛事','AI电影节','AI设计类'].map(c=>({k:c,label:c})));
-    $('#tabs').innerHTML = tabs.map(t=>`<button class="tab ${state.collection===t.k?'active':''}" data-col="${t.k}">${esc(t.label)}<span class="n">${counts[t.k]}</span></button>`).join('');
+    COLS.forEach(c=>counts[c]=items.filter(i=>i.collection===c).length);
+    const tabs = [{k:'ALL',label:'全部赛事',c:null}].concat(COLS.map(c=>({k:c,label:c,c:colColor(c)})));
+    $('#tabs').innerHTML = tabs.map(t=>`<button class="tab ${state.collection===t.k?'active':''}" data-col="${t.k}">${t.c?`<span class="bar" style="background:${t.c}"></span>`:''}${esc(t.label)}<span class="n">${counts[t.k]}</span></button>`).join('');
   }
 
-  // ---------- sidebar facets ----------
+  // ---------- filters ----------
   function basePool(){
     return state.collection==='ALL' ? items : items.filter(i=>i.collection===state.collection);
   }
-  function buildFacets(){
+  function buildFilters(){
     const pool = basePool();
     // status
     $('#fStatus').innerHTML = STATUSES.map(s=>{
@@ -62,15 +58,26 @@
     const typeCount = {};
     pool.forEach(i=>{if(i.type)typeCount[i.type]=(typeCount[i.type]||0)+1;});
     const types = Object.keys(typeCount).sort((a,b)=>typeCount[b]-typeCount[a]);
-    $('#fType').innerHTML = types.map(t=>`<button class="fchip ${state.type.has(t)?'active':''}" data-facet="type" data-val="${esc(t)}"><span>${esc(t)}</span><span class="cnt">${typeCount[t]}</span></button>`).join('');
+    renderChips('#fType','type',types,typeCount,state.typeOpen,'#moreType');
     // region
     const regCount = {};
     pool.forEach(i=>(i.region||[]).forEach(r=>{regCount[r]=(regCount[r]||0)+1;}));
-    const regs = Object.keys(regCount).sort((a,b)=>regCount[b]-regCount[a]).slice(0,22);
-    $('#fRegion').innerHTML = regs.map(r=>`<button class="fchip ${state.region.has(r)?'active':''}" data-facet="region" data-val="${esc(r)}"><span>${esc(r)}</span><span class="cnt">${regCount[r]}</span></button>`).join('');
+    const regs = Object.keys(regCount).sort((a,b)=>regCount[b]-regCount[a]);
+    renderChips('#fRegion','region',regs,regCount,state.regionOpen,'#moreRegion');
+    // clear button
+    const anyF = state.status.size||state.type.size||state.region.size;
+    $('#clearBtn').hidden = !anyF;
+  }
+  function renderChips(sel,facet,keys,countMap,open,moreSel){
+    const el = $(sel);
+    const show = open ? keys : keys.slice(0,16);
+    el.innerHTML = show.map(k=>`<button class="fchip ${state[facet].has(k)?'active':''}" data-facet="${facet}" data-val="${esc(k)}">${esc(k)}<span class="cnt">${countMap[k]}</span></button>`).join('');
+    el.classList.toggle('collapsed', !open && keys.length>16);
+    $(moreSel).hidden = keys.length<=16;
+    $(moreSel).textContent = open ? '收起 ▴' : `更多 ${keys.length-16} ▾`;
   }
 
-  // ---------- filter ----------
+  // ---------- filter match ----------
   function matches(it){
     if(state.collection!=='ALL' && it.collection!==state.collection) return false;
     if(state.status.size && !state.status.has(it.status)) return false;
@@ -84,23 +91,41 @@
     return true;
   }
 
+  // ---------- sort ----------
+  function sortList(list){
+    const n = nowTs();
+    if(state.sort==='name'){
+      return list.slice().sort((a,b)=>a.name.localeCompare(b.name,'zh'));
+    }
+    if(state.sort==='recent'){
+      return list.slice().sort((a,b)=>String(b.id).localeCompare(String(a.id))); // record_id desc ~ newer
+    }
+    // deadline: upcoming first (soonest), then past (most recent), then none
+    const key = it=>{
+      const d = it.deadline ? Date.parse(it.deadline+'T00:00:00') : NaN;
+      if(isNaN(d)) return {g:2, v:0};
+      return d>=n ? {g:0, v:d} : {g:1, v:-d};
+    };
+    return list.slice().sort((a,b)=>{const ka=key(a),kb=key(b);return ka.g-kb.g || ka.v-kb.v;});
+  }
+
   // ---------- grid ----------
   function renderGrid(){
-    const list = items.filter(matches);
+    let list = items.filter(matches);
+    list = sortList(list);
     $('#listTitle').textContent = state.collection==='ALL' ? '全部赛事' : state.collection;
     const act = [];
     if(state.status.size) act.push([...state.status].join('/'));
     if(state.type.size) act.push([...state.type].join('/'));
     if(state.region.size) act.push([...state.region].join('/'));
     $('#listSub').textContent = `${list.length} 条结果` + (act.length?` · 筛选：${act.join(' · ')}`:'') + (state.q?` · 搜索「${state.q}」`:'');
-    if(!list.length){
-      $('#grid').innerHTML = `<div class="empty">没有符合条件的赛事，试试放宽筛选条件 🔍</div>`;
-      return;
-    }
-    $('#grid').innerHTML = list.map(it=>{
+    const grid = $('#grid'), empty = $('#empty');
+    if(!list.length){ grid.innerHTML=''; empty.hidden=false; return; }
+    empty.hidden=true;
+    grid.innerHTML = list.map(it=>{
       const color = colColor(it.collection);
-      const rtext = truncate(regionText(it.region), 18);
-      const award = truncate(it.award, 46);
+      const rtext = truncate(regionText(it.region), 20);
+      const award = truncate(it.award, 48);
       const web = it.website ? `<a href="${esc(it.website)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">官网 ↗</a>` : `<span style="color:var(--ink3);font-family:var(--mono);font-size:11px">无链接</span>`;
       return `<button class="card" data-id="${esc(it.id)}">
         <span class="bar" style="background:${color}"></span>
@@ -122,7 +147,7 @@
     }).join('');
   }
 
-  function refresh(){buildFacets();renderGrid();}
+  function refresh(){buildFilters();renderGrid();}
 
   // ---------- modal ----------
   function detail(id){
@@ -153,57 +178,54 @@
   }
   function closeDetail(){$('#modal').classList.remove('show');}
 
-  // ---------- navigation ----------
-  function showLib(){$('#cover').classList.add('hide');$('#library').classList.add('show');}
-  function showCover(){closeCanvas();$('#library').classList.remove('show');const c=$('#cover');c.classList.remove('hide');c.scrollTop=0;}
-  function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1200);}
-
-  // ---------- canvas ----------
+  // ---------- canvas (showcase, ALL items) ----------
   const canvas=$('#canvas'),viewport=$('#viewport'),plane=$('#plane');
-  let pan={x:0,y:0,s:1},drag=false,moved=false,start={x:0,y:0},startPan={x:0,y:0},paused=false;
+  let pan={x:0,y:0,s:1},drag=false,moved=false,start={x:0,y:0},startPan={x:0,y:0},paused=false,canvasBuilt=false;
   function renderCanvas(){
-    const pool = items.filter(matches).slice(0,160);
-    let rings=[300,560,840,1120,1420];
-    let html = pool.map((a,i)=>{
+    const pool = items.filter(matches);
+    const animate = pool.length<=260;
+    const rings=[300,560,840,1120,1420];
+    const html = pool.map((a,i)=>{
       const ang=i*137.508*Math.PI/180, ring=rings[i%rings.length];
       const x=Math.cos(ang)*ring+((i%7)-3)*70, y=Math.sin(ang)*ring+((i%9)-4)*54;
       const r=((i*31)%40)-20, dur=6+(i%8)*.55, delay=-((i%13)*.36);
-      return `<button class="canvasItem" data-id="${esc(a.id)}" style="--x:${x.toFixed(0)}px;--y:${y.toFixed(0)}px;--r:${r}deg;--dur:${dur}s;--delay:${delay}s"><div class="canvasInner"><span class="col" style="background:${colColor(a.collection)}">${esc(a.collection)}</span><h4>${esc(truncate(a.name,22))}</h4></div></button>`;
+      return `<button class="canvasItem ${animate?'animate':''}" data-id="${esc(a.id)}" style="--x:${x.toFixed(0)}px;--y:${y.toFixed(0)}px;--r:${r}deg;--dur:${dur}s;--delay:${delay}s"><div class="canvasInner"><span class="col" style="background:${colColor(a.collection)}">${esc(a.collection)}</span><h4>${esc(truncate(a.name,22))}</h4></div></button>`;
     }).join('');
-    plane.insertAdjacentHTML('beforeend',html);
+    plane.innerHTML = `<div class="axis h"></div><div class="axis v"></div>`+html;
+    canvasBuilt=true;
   }
   function apply(){plane.style.transform=`translate(${pan.x}px,${pan.y}px) scale(${pan.s})`;}
-  function openCanvas(){showLib();canvas.classList.add('show');apply();}
+  function openCanvas(){renderCanvas();canvas.classList.add('show');apply();}
   function closeCanvas(){canvas.classList.remove('show');}
   function reset(){pan={x:0,y:0,s:1};apply();}
 
   viewport.addEventListener('pointerdown',e=>{drag=true;moved=false;start={x:e.clientX,y:e.clientY};startPan={...pan};viewport.classList.add('dragging');viewport.setPointerCapture(e.pointerId);});
   viewport.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;pan.x=startPan.x+dx;pan.y=startPan.y+dy;apply();});
   viewport.addEventListener('pointerup',()=>{setTimeout(()=>{drag=false;viewport.classList.remove('dragging');},0);});
-  viewport.addEventListener('wheel',e=>{e.preventDefault();pan.s=Math.max(.32,Math.min(2.4,pan.s*(e.deltaY>0?.92:1.08)));apply();},{passive:false});
+  viewport.addEventListener('wheel',e=>{e.preventDefault();pan.s=Math.max(.30,Math.min(2.4,pan.s*(e.deltaY>0?.92:1.08)));apply();},{passive:false});
 
   // ---------- events ----------
-  $('#enter').onclick=showLib;
-  $('#canvasFromCover').onclick=openCanvas;
-  $('#homeBtn').onclick=showCover;
-  $('#canvasBtn').onclick=openCanvas;
-  $('#exitCanvas').onclick=closeCanvas;
-  $('#resetBtn').onclick=reset;
-  $('#pauseBtn').onclick=()=>{paused=!paused;$$('.canvasInner').forEach(el=>el.style.animationPlayState=paused?'paused':'running');$('#pauseBtn').textContent=paused?'继续动效':'暂停动效';};
-  $('#search').oninput=e=>{state.q=e.target.value;renderGrid();};
-  $('#tabs').onclick=e=>{const b=e.target.closest('.tab');if(!b)return;state.collection=b.dataset.col;$$('.tab').forEach(x=>x.classList.toggle('active',x===b));refresh();};
-  $('#side').onclick=e=>{const b=e.target.closest('.fchip');if(!b)return;const f=b.dataset.facet,v=b.dataset.val;const set=state[f];if(set.has(v))set.delete(v);else set.add(v);b.classList.toggle('active');renderGrid();};
-  document.addEventListener('click',e=>{const c=e.target.closest('[data-id]');if(c&&!moved)detail(c.dataset.id);});
-  $('#close').onclick=closeDetail;
-  $('#modal').onclick=e=>{if(e.target.id==='modal')closeDetail();};
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){closeDetail();closeCanvas();}
-    if(e.key==='/'&&!$('#modal').classList.contains('show')){e.preventDefault();showLib();$('#search').focus();}
-    if(e.key==='Enter'&&!$('#library').classList.contains('show'))showLib();
+  $('#search').addEventListener('input',e=>{state.q=e.target.value;renderGrid();});
+  $('#sort').addEventListener('change',e=>{state.sort=e.target.value;renderGrid();});
+  $('#tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;state.collection=b.dataset.col;$$('.tab').forEach(x=>x.classList.toggle('active',x===b));refresh();});
+  document.querySelector('.filterbar').addEventListener('click',e=>{
+    const b=e.target.closest('.fchip');
+    if(b){const f=b.dataset.facet,v=b.dataset.val;const set=state[f];if(set.has(v))set.delete(v);else set.add(v);b.classList.toggle('active');renderGrid();buildFilters();return;}
+    if(e.target.id==='moreType'){state.typeOpen=!state.typeOpen;buildFilters();return;}
+    if(e.target.id==='moreRegion'){state.regionOpen=!state.regionOpen;buildFilters();return;}
+    if(e.target.id==='clearBtn'){state.status.clear();state.type.clear();state.region.clear();refresh();return;}
   });
+  $('#canvasBtn').addEventListener('click',openCanvas);
+  $('#exitCanvas').addEventListener('click',closeCanvas);
+  $('#resetBtn').addEventListener('click',reset);
+  $('#pauseBtn').addEventListener('click',()=>{paused=!paused;$$('.canvasInner').forEach(el=>el.style.animationPlayState=paused?'paused':'running');$('#pauseBtn').textContent=paused?'继续动效':'暂停动效';});
+  document.addEventListener('click',e=>{const c=e.target.closest('[data-id]');if(c&&!moved)detail(c.dataset.id);});
+  $('#close').addEventListener('click',closeDetail);
+  $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeDetail();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDetail();closeCanvas();}});
 
   // ---------- init ----------
-  buildCover();
+  buildStats();
   buildTabs();
   refresh();
   console.log('AI赛事库 loaded:', items.length, 'events');

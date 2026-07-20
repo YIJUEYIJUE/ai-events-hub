@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI 赛事库 · AI Competitions Hub</title>
+<meta name="description" content="汇集 AI 赛事、AI 电影节与 AI 设计类比赛的公开目录：比赛简介、官方报名入口、奖项奖金、截止时间与地区分类，一搜即达。">
+<meta name="theme-color" content="#f7f0df">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ COVER ============ -->
+  <main class="cover paper" id="cover">
+    <nav class="nav">
+      <div class="brand"><div class="brandPill">AI 赛事库</div><span class="brandSub">AI COMPETITIONS HUB</span></div>
+      <div class="brandSub">公开赛事目录 · 含官网直达</div>
+    </nav>
+
+    <section class="hero">
+      <div class="stamp"><i></i><span id="stampText">实时收录 · 比赛 / 官网 / 展示</span></div>
+      <h1>AI 赛事<br>一站式目录</h1>
+      <p class="lead">把散落在各处的 AI 创作赛事、AI 电影节与 AI 设计比赛，整理成同一套可检索的目录。每张卡片都附<b>官方报名入口</b>、<b>奖项奖金</b>、<b>截止时间</b>与<b>地区</b>——无论是参赛、观展还是做研究，都能快速定位。</p>
+      <div class="actions">
+        <button class="btn primary" id="enter">进入赛事库 →</button>
+        <button class="btn blue" id="canvasFromCover">展览画布</button>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="marquee"><div class="marqueeTrack" id="marquee"></div></div>
+    </section>
+
+    <section class="feat">
+      <div class="featCard"><div class="ic">🏆</div><b>比赛一览</b><p>覆盖 AI 赛事、AI 电影节、AI 设计类三大类，共上千条赛事信息，持续收录。</p></div>
+      <div class="featCard"><div class="ic">🔗</div><b>官网直达</b><p>每张卡片都带官方报名 / 展示页面链接，点击即跳转，省去逐个搜索。</p></div>
+      <div class="featCard"><div class="ic">🗂️</div><b>分门别类</b><p>按大类、状态、类型、地区多维筛选，配合关键词搜索，精准找到你关心的赛事。</p></div>
+    </section>
+  </main>
+
+  <!-- ============ LIBRARY ============ -->
+  <section class="library" id="library">
+    <header class="topbar">
+      <div class="libBrand"><div class="brandPill">AI 赛事库</div></div>
+      <label class="search"><span>⌕</span><input id="search" placeholder="搜索赛事名称 / 类型 / 地区 / 说明 / 官网"></label>
+      <div class="libActions">
+        <button class="miniBtn" id="canvasBtn">展览画布</button>
+        <button class="miniBtn dark" id="homeBtn">封面</button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs"></nav>
+
+    <aside class="side" id="side">
+      <p class="sideLabel">状态 Status</p><div id="fStatus"></div>
+      <p class="sideLabel">类型 Type</p><div id="fType"></div>
+      <p class="sideLabel">地区 Region</p><div id="fRegion"></div>
+    </aside>
+
+    <section class="content">
+      <div class="contentHead">
+        <h2 id="listTitle">全部赛事</h2>
+        <p id="listSub"></p>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </section>
+
+  <!-- ============ CANVAS ============ -->
+  <section class="canvas" id="canvas">
+    <div class="canvasSheet">
+      <div class="canvasTop">
+        <div class="canvasTitle"><h2>赛事展览画布</h2><p>拖拽移动 · 滚轮缩放 · 点击查看详情</p></div>
+        <div class="canvasTools">
+          <button id="pauseBtn">暂停动效</button>
+          <button id="resetBtn">复位视角</button>
+          <button class="dark" id="exitCanvas">返回目录</button>
+        </div>
+      </div>
+      <div class="viewport" id="viewport">
+        <div class="plane" id="plane"><div class="axis h"></div><div class="axis v"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MODAL ============ -->
+  <div class="modal" id="modal">
+    <article class="modalCard">
+      <button class="close" id="close">×</button>
+      <div class="modalInfo">
+        <div class="kicker" id="mKicker"></div>
+        <h2 id="mTitle"></h2>
+        <div class="tags" id="mTags"></div>
+        <div class="specs" id="mSpecs"></div>
+        <a class="modalLink" id="mLink" href="#" target="_blank" rel="noopener">前往官网 / 报名 ↗</a>
+        <div id="mDescWrap" style="margin-top:16px;display:none"><p class="sideLabel" style="margin:0 0 8px">说明 Description</p><div class="descBox" id="mDesc"></div></div>
+      </div>
+    </article>
+  </div>
+
+  <div class="toast" id="toast">已复制</div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

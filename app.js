@@ -109,6 +109,14 @@
     return list.slice().sort((a,b)=>{const ka=key(a),kb=key(b);return ka.g-kb.g || ka.v-kb.v;});
   }
 
+  // ---------- highlight: 每张卡最重要的「奖金 / 能得到什么」 ----------
+  function highlight(it){
+    if(it.award && it.award.trim()) return {ico:'🏆', cls:'hl-award', text:'奖金 | 奖项：'+it.award.trim()};
+    if(it.nextTime && it.nextTime.trim()) return {ico:'🗓️', cls:'hl-next', text:'明年预期：'+it.nextTime.trim()};
+    if(it.entry && it.entry.trim()) return {ico:'🎟️', cls:'hl-entry', text:'参赛资格：'+it.entry.trim()};
+    return {ico:'🔗', cls:'hl-link', text:'奖项与详情见官网'};
+  }
+
   // ---------- grid ----------
   function renderGrid(){
     let list = items.filter(matches);
@@ -125,9 +133,10 @@
     grid.innerHTML = list.map(it=>{
       const color = colColor(it.collection);
       const rtext = truncate(regionText(it.region), 20);
-      const award = truncate(it.award, 48);
       const web = it.website ? `<a href="${esc(it.website)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">官网 ↗</a>` : `<span style="color:var(--ink3);font-family:var(--mono);font-size:11px">无链接</span>`;
-      return `<button class="card" data-id="${esc(it.id)}">
+      const hl = highlight(it);
+      const fullAward = it.award && it.award.trim() ? it.award.trim() : '';
+      return `<button class="card" data-id="${esc(it.id)}" title="${esc(fullAward)}">
         <span class="bar" style="background:${color}"></span>
         <div class="cardTop">
           <span class="col" style="background:${color}">${esc(it.collection)}</span>
@@ -138,7 +147,7 @@
           ${it.type?`<span class="t">${esc(it.type)}</span>`:''}
           ${rtext?`<span class="r">📍 ${esc(rtext)}</span>`:''}
         </div>
-        ${award?`<div class="award">🏆 ${esc(award)}</div>`:''}
+        <div class="hl ${hl.cls}"><span class="hlIco">${hl.ico}</span><span class="hlTxt">${esc(hl.text)}</span></div>
         <div class="cardFoot">
           <span class="dl">${it.deadline?('📅 '+esc(it.deadline)):(it.nextTime?('🗓️ '+esc(truncate(it.nextTime,14))):'—')}</span>
           ${web}

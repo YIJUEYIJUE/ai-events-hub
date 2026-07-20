@@ -14,7 +14,8 @@
   function truncate(s,n){s=String(s||'');return s.length>n?s.slice(0,n)+'…':s;}
   function nowTs(){return Date.now();}
 
-  const state = {collection:'ALL', q:'', status:new Set(), type:new Set(), region:new Set(), sort:'deadline', typeOpen:false, regionOpen:false};
+  const state = {collection:'ALL', q:'', status:new Set(), type:new Set(), region:new Set(), sort:'deadline'};
+  let temp = {status:new Set(), type:new Set(), region:new Set(), typeOpen:false, regionOpen:false};
 
   // ---------- hero stats ----------
   function buildStats(){
@@ -41,9 +42,31 @@
     $('#tabs').innerHTML = tabs.map(t=>`<button class="tab ${state.collection===t.k?'active':''}" data-col="${t.k}">${t.c?`<span class="bar" style="background:${t.c}"></span>`:''}${esc(t.label)}<span class="n">${counts[t.k]}</span></button>`).join('');
   }
 
-  // ---------- drawer ----------
-  function openDrawer(){$('#drawer').classList.add('open');$('#drawerOverlay').classList.add('show');document.body.style.overflow='hidden';}
-  function closeDrawer(){$('#drawer').classList.remove('open');$('#drawerOverlay').classList.remove('show');document.body.style.overflow='';}
+  // ---------- filter modal ----------
+  function openDrawer(){
+    temp.status = new Set(state.status);
+    temp.type = new Set(state.type);
+    temp.region = new Set(state.region);
+    temp.typeOpen = false; temp.regionOpen = false;
+    buildFilters();
+    $('#drawer').classList.add('open');
+    $('#drawerOverlay').classList.add('show');
+    document.body.style.overflow='hidden';
+    $('#drawer').setAttribute('aria-hidden','false');
+  }
+  function closeDrawer(){
+    $('#drawer').classList.remove('open');
+    $('#drawerOverlay').classList.remove('show');
+    document.body.style.overflow='';
+    $('#drawer').setAttribute('aria-hidden','true');
+  }
+  function applyFilters(){
+    state.status = new Set(temp.status);
+    state.type = new Set(temp.type);
+    state.region = new Set(temp.region);
+    closeDrawer();
+    refresh();
+  }
   function toggleDrawer(){$('#drawer').classList.contains('open')?closeDrawer():openDrawer();}
 
   // ---------- filters ----------
@@ -55,20 +78,19 @@
     $('#fStatus').innerHTML = STATUSES.map(s=>{
       const n = pool.filter(i=>i.status===s).length;
       if(!n) return '';
-      return `<button class="fchip ${state.status.has(s)?'active':''}" data-facet="status" data-val="${esc(s)}"><span><span class="swatch" style="background:${s==='进行中'?'#2e7d32':s==='已截止'?'#9b9384':'#b07400'}"></span>${esc(s)}</span><span class="cnt">${n}</span></button>`;
+      return `<button class="fchip ${temp.status.has(s)?'active':''}" data-facet="status" data-val="${esc(s)}"><span><span class="swatch" style="background:${s==='进行中'?'#2e7d32':s==='已截止'?'#9b9384':'#b07400'}"></span>${esc(s)}</span><span class="cnt">${n}</span></button>`;
     }).join('');
     const typeCount = {}; pool.forEach(i=>{if(i.type)typeCount[i.type]=(typeCount[i.type]||0)+1;});
     const types = Object.keys(typeCount).sort((a,b)=>typeCount[b]-typeCount[a]);
-    renderChips('#fType','type',types,typeCount,state.typeOpen,'#moreType');
+    renderChips('#fType','type',types,typeCount,temp.typeOpen,'#moreType');
     const regCount = {}; pool.forEach(i=>(i.region||[]).forEach(r=>{regCount[r]=(regCount[r]||0)+1;}));
     const regs = Object.keys(regCount).sort((a,b)=>regCount[b]-regCount[a]);
-    renderChips('#fRegion','region',regs,regCount,state.regionOpen,'#moreRegion');
-    buildActiveFilters();
+    renderChips('#fRegion','region',regs,regCount,temp.regionOpen,'#moreRegion');
   }
   function renderChips(sel,facet,keys,countMap,open,moreSel){
     const el = $(sel);
     const show = open ? keys : keys.slice(0,16);
-    el.innerHTML = show.map(k=>`<button class="fchip ${state[facet].has(k)?'active':''}" data-facet="${facet}" data-val="${esc(k)}">${esc(k)}<span class="cnt">${countMap[k]}</span></button>`).join('');
+    el.innerHTML = show.map(k=>`<button class="fchip ${temp[facet].has(k)?'active':''}" data-facet="${facet}" data-val="${esc(k)}">${esc(k)}<span class="cnt">${countMap[k]}</span></button>`).join('');
     el.classList.toggle('collapsed', !open && keys.length>16);
     $(moreSel).hidden = keys.length<=16;
     $(moreSel).textContent = open ? '收起 ▴' : `更多 ${keys.length-16} ▾`;
@@ -155,7 +177,7 @@
     }).join('');
   }
 
-  function refresh(){buildFilters();renderGrid();}
+  function refresh(){buildActiveFilters();renderGrid();}
 
   // ---------- modal ----------
   function detail(id){
@@ -221,11 +243,12 @@
   $('#drawerOverlay').addEventListener('click',closeDrawer);
   $('#drawer').addEventListener('click',e=>{
     const b=e.target.closest('.fchip');
-    if(b){const f=b.dataset.facet,v=b.dataset.val;const set=state[f];if(set.has(v))set.delete(v);else set.add(v);b.classList.toggle('active');renderGrid();buildActiveFilters();return;}
-    if(e.target.id==='moreType'){state.typeOpen=!state.typeOpen;buildFilters();return;}
-    if(e.target.id==='moreRegion'){state.regionOpen=!state.regionOpen;buildFilters();return;}
-    if(e.target.id==='clearBtn'){state.status.clear();state.type.clear();state.region.clear();state.q='';state.collection='ALL';$('#search').value='';refresh();closeDrawer();return;}
+    if(b){const f=b.dataset.facet,v=b.dataset.val;const set=temp[f];if(set.has(v))set.delete(v);else set.add(v);b.classList.toggle('active');return;}
+    if(e.target.id==='moreType'){temp.typeOpen=!temp.typeOpen;buildFilters();return;}
+    if(e.target.id==='moreRegion'){temp.regionOpen=!temp.regionOpen;buildFilters();return;}
+    if(e.target.id==='clearBtn'){temp.status.clear();temp.type.clear();temp.region.clear();buildFilters();return;}
   });
+  $('#applyBtn').addEventListener('click',applyFilters);
   $('#activeFilters').addEventListener('click',e=>{
     const c=e.target.closest('.afChip');if(!c)return;
     const f=c.dataset.facet,v=c.dataset.val;state[f].delete(v);refresh();

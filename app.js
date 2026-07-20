@@ -163,6 +163,7 @@
     if(!it) return;
     $('#mKicker').textContent = `${esc(it.collection)} · ${esc(it.status)}`;
     $('#mTitle').textContent = it.name;
+    $('#mHeadBar').style.background = colColor(it.collection);
     const tags = [];
     if(it.type) tags.push(`<span class="tag">${esc(it.type)}</span>`);
     (it.region||[]).slice(0,4).forEach(r=>tags.push(`<span class="tag mint">${esc(r)}</span>`));
@@ -175,7 +176,7 @@
     if(it.nextTime) specs.push(['明年预期 Next', it.nextTime]);
     if(it.entry) specs.push(['参赛资格 Entry', it.entry]);
     specs.push(['地区 Region', regionText(it.region)||'—']);
-    $('#mSpecs').innerHTML = specs.map(([k,v])=>`<div class="spec ${k.startsWith('奖金')||k.startsWith('明年')||k.startsWith('参赛')?'full':''}"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+    $('#mSpecs').innerHTML = specs.map(([k,v])=>`<div class="spec ${k.startsWith('奖金')?'highlight ':''}${k.startsWith('奖金')||k.startsWith('明年')||k.startsWith('参赛')?'full':''}"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
     const link = $('#mLink');
     if(it.website){link.href = it.website; link.style.display='inline-flex';}
     else {link.style.display='none';}

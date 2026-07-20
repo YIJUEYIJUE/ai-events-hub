@@ -9,7 +9,7 @@
 <title>AI 赛事库 · AI Competitions Hub</title>
 <meta name="description" content="汇集 AI 赛事、AI 电影节与 AI 设计类比赛的公开目录：比赛简介、官方报名入口、奖项奖金、截止时间与地区分类。共收录上千条赛事。">
 <meta name="theme-color" content="#f7f0df">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -111,6 +111,7 @@
   <!-- ============ MODAL ============ -->
   <div class="modal" id="modal">
     <article class="modalCard">
+      <div class="modalHeadBar" id="mHeadBar"></div>
       <button class="close" id="close">×</button>
       <div class="modalInfo">
         <div class="kicker" id="mKicker"></div>
@@ -118,7 +119,7 @@
         <div class="tags" id="mTags"></div>
         <div class="specs" id="mSpecs"></div>
         <a class="modalLink" id="mLink" href="#" target="_blank" rel="noopener">前往官网 / 报名 ↗</a>
-        <div id="mDescWrap" style="margin-top:16px;display:none">
+        <div id="mDescWrap" style="margin-top:20px;display:none">
           <p class="sideLabel" style="margin:0 0 8px">说明 Description</p>
           <div class="descBox" id="mDesc"></div>
         </div>
@@ -130,6 +131,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

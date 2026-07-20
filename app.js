@@ -18,19 +18,18 @@
 
   // ---------- hero stats ----------
   function buildStats(){
-    const byColl = {};
-    items.forEach(it=>{byColl[it.collection]=(byColl[it.collection]||0)+1;});
+    const byColl = {}; items.forEach(it=>{byColl[it.collection]=(byColl[it.collection]||0)+1;});
     const openNow = items.filter(i=>i.status==='进行中').length;
     const withSite = items.filter(i=>i.website).length;
     const cards = [
-      {b:items.length, s:'赛事总数 EVENTS', c:null},
-      {b:COLS.length, s:'大类 CATEGORIES', c:null},
-      {b:openNow, s:'进行中 OPEN', c:'#2e7d32'},
-      {b:withSite, s:'附官网 LINKED', c:'#173fe8'},
+      {b:items.length, s:'赛事总数', c:null},
+      {b:COLS.length, s:'大类', c:null},
+      {b:openNow, s:'进行中', c:'#2e7d32'},
+      {b:withSite, s:'附官网', c:'#173fe8'},
     ];
     $('#stats').innerHTML = cards.map(x=>{
       const dot = x.c?`<span class="accent" style="background:${x.c}"></span>`:'';
-      return `<div class="stat"><b>${dot}${x.b}</b><span>${x.s}</span></div>`;
+      return `<div class="stat"><b>${dot}${x.b}</b><span>${esc(x.s)}</span></div>`;
     }).join('');
   }
 
@@ -42,31 +41,29 @@
     $('#tabs').innerHTML = tabs.map(t=>`<button class="tab ${state.collection===t.k?'active':''}" data-col="${t.k}">${t.c?`<span class="bar" style="background:${t.c}"></span>`:''}${esc(t.label)}<span class="n">${counts[t.k]}</span></button>`).join('');
   }
 
+  // ---------- drawer ----------
+  function openDrawer(){$('#drawer').classList.add('open');$('#drawerOverlay').classList.add('show');document.body.style.overflow='hidden';}
+  function closeDrawer(){$('#drawer').classList.remove('open');$('#drawerOverlay').classList.remove('show');document.body.style.overflow='';}
+  function toggleDrawer(){$('#drawer').classList.contains('open')?closeDrawer():openDrawer();}
+
   // ---------- filters ----------
   function basePool(){
     return state.collection==='ALL' ? items : items.filter(i=>i.collection===state.collection);
   }
   function buildFilters(){
     const pool = basePool();
-    // status
     $('#fStatus').innerHTML = STATUSES.map(s=>{
       const n = pool.filter(i=>i.status===s).length;
       if(!n) return '';
       return `<button class="fchip ${state.status.has(s)?'active':''}" data-facet="status" data-val="${esc(s)}"><span><span class="swatch" style="background:${s==='进行中'?'#2e7d32':s==='已截止'?'#9b9384':'#b07400'}"></span>${esc(s)}</span><span class="cnt">${n}</span></button>`;
     }).join('');
-    // type
-    const typeCount = {};
-    pool.forEach(i=>{if(i.type)typeCount[i.type]=(typeCount[i.type]||0)+1;});
+    const typeCount = {}; pool.forEach(i=>{if(i.type)typeCount[i.type]=(typeCount[i.type]||0)+1;});
     const types = Object.keys(typeCount).sort((a,b)=>typeCount[b]-typeCount[a]);
     renderChips('#fType','type',types,typeCount,state.typeOpen,'#moreType');
-    // region
-    const regCount = {};
-    pool.forEach(i=>(i.region||[]).forEach(r=>{regCount[r]=(regCount[r]||0)+1;}));
+    const regCount = {}; pool.forEach(i=>(i.region||[]).forEach(r=>{regCount[r]=(regCount[r]||0)+1;}));
     const regs = Object.keys(regCount).sort((a,b)=>regCount[b]-regCount[a]);
     renderChips('#fRegion','region',regs,regCount,state.regionOpen,'#moreRegion');
-    // clear button
-    const anyF = state.status.size||state.type.size||state.region.size;
-    $('#clearBtn').hidden = !anyF;
+    buildActiveFilters();
   }
   function renderChips(sel,facet,keys,countMap,open,moreSel){
     const el = $(sel);
@@ -75,6 +72,17 @@
     el.classList.toggle('collapsed', !open && keys.length>16);
     $(moreSel).hidden = keys.length<=16;
     $(moreSel).textContent = open ? '收起 ▴' : `更多 ${keys.length-16} ▾`;
+  }
+
+  function buildActiveFilters(){
+    const chips = [];
+    state.status.forEach(v=>chips.push({facet:'status',v,label:v}));
+    state.type.forEach(v=>chips.push({facet:'type',v,label:v}));
+    state.region.forEach(v=>chips.push({facet:'region',v,label:v}));
+    const af = $('#activeFilters');
+    if(!chips.length){af.hidden=true;af.innerHTML='';return;}
+    af.hidden=false;
+    af.innerHTML = `<span class="afLabel">已选</span>` + chips.map(c=>`<span class="afChip" data-facet="${c.facet}" data-val="${esc(c.v)}">${esc(c.label)}<button>×</button></span>`).join('');
   }
 
   // ---------- filter match ----------
@@ -94,13 +102,8 @@
   // ---------- sort ----------
   function sortList(list){
     const n = nowTs();
-    if(state.sort==='name'){
-      return list.slice().sort((a,b)=>a.name.localeCompare(b.name,'zh'));
-    }
-    if(state.sort==='recent'){
-      return list.slice().sort((a,b)=>String(b.id).localeCompare(String(a.id))); // record_id desc ~ newer
-    }
-    // deadline: upcoming first (soonest), then past (most recent), then none
+    if(state.sort==='name') return list.slice().sort((a,b)=>a.name.localeCompare(b.name,'zh'));
+    if(state.sort==='recent') return list.slice().sort((a,b)=>String(b.id).localeCompare(String(a.id)));
     const key = it=>{
       const d = it.deadline ? Date.parse(it.deadline+'T00:00:00') : NaN;
       if(isNaN(d)) return {g:2, v:0};
@@ -109,7 +112,7 @@
     return list.slice().sort((a,b)=>{const ka=key(a),kb=key(b);return ka.g-kb.g || ka.v-kb.v;});
   }
 
-  // ---------- highlight: 每张卡最重要的「奖金 / 能得到什么」 ----------
+  // ---------- highlight ----------
   function highlight(it){
     if(it.award && it.award.trim()) return {ico:'🏆', cls:'hl-award', text:'奖金 | 奖项：'+it.award.trim()};
     if(it.nextTime && it.nextTime.trim()) return {ico:'🗓️', cls:'hl-next', text:'明年预期：'+it.nextTime.trim()};
@@ -122,17 +125,13 @@
     let list = items.filter(matches);
     list = sortList(list);
     $('#listTitle').textContent = state.collection==='ALL' ? '全部赛事' : state.collection;
-    const act = [];
-    if(state.status.size) act.push([...state.status].join('/'));
-    if(state.type.size) act.push([...state.type].join('/'));
-    if(state.region.size) act.push([...state.region].join('/'));
-    $('#listSub').textContent = `${list.length} 条结果` + (act.length?` · 筛选：${act.join(' · ')}`:'') + (state.q?` · 搜索「${state.q}」`:'');
+    $('#listSub').textContent = `${list.length} 条赛事` + (state.q?` · 搜索「${state.q}」`:'');
     const grid = $('#grid'), empty = $('#empty');
     if(!list.length){ grid.innerHTML=''; empty.hidden=false; return; }
     empty.hidden=true;
     grid.innerHTML = list.map(it=>{
       const color = colColor(it.collection);
-      const rtext = truncate(regionText(it.region), 20);
+      const rtext = truncate(regionText(it.region), 22);
       const web = it.website ? `<a href="${esc(it.website)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">官网 ↗</a>` : `<span style="color:var(--ink3);font-family:var(--mono);font-size:11px">无链接</span>`;
       const hl = highlight(it);
       const fullAward = it.award && it.award.trim() ? it.award.trim() : '';
@@ -187,9 +186,9 @@
   }
   function closeDetail(){$('#modal').classList.remove('show');}
 
-  // ---------- canvas (showcase, ALL items) ----------
+  // ---------- canvas ----------
   const canvas=$('#canvas'),viewport=$('#viewport'),plane=$('#plane');
-  let pan={x:0,y:0,s:1},drag=false,moved=false,start={x:0,y:0},startPan={x:0,y:0},paused=false,canvasBuilt=false;
+  let pan={x:0,y:0,s:1},drag=false,moved=false,start={x:0,y:0},startPan={x:0,y:0},paused=false;
   function renderCanvas(){
     const pool = items.filter(matches);
     const animate = pool.length<=260;
@@ -201,7 +200,6 @@
       return `<button class="canvasItem ${animate?'animate':''}" data-id="${esc(a.id)}" style="--x:${x.toFixed(0)}px;--y:${y.toFixed(0)}px;--r:${r}deg;--dur:${dur}s;--delay:${delay}s"><div class="canvasInner"><span class="col" style="background:${colColor(a.collection)}">${esc(a.collection)}</span><h4>${esc(truncate(a.name,22))}</h4></div></button>`;
     }).join('');
     plane.innerHTML = `<div class="axis h"></div><div class="axis v"></div>`+html;
-    canvasBuilt=true;
   }
   function apply(){plane.style.transform=`translate(${pan.x}px,${pan.y}px) scale(${pan.s})`;}
   function openCanvas(){renderCanvas();canvas.classList.add('show');apply();}
@@ -214,15 +212,22 @@
   viewport.addEventListener('wheel',e=>{e.preventDefault();pan.s=Math.max(.30,Math.min(2.4,pan.s*(e.deltaY>0?.92:1.08)));apply();},{passive:false});
 
   // ---------- events ----------
-  $('#search').addEventListener('input',e=>{state.q=e.target.value;renderGrid();});
+  $('#search').addEventListener('input',e=>{state.q=e.target.value;renderGrid();buildActiveFilters();});
   $('#sort').addEventListener('change',e=>{state.sort=e.target.value;renderGrid();});
   $('#tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;state.collection=b.dataset.col;$$('.tab').forEach(x=>x.classList.toggle('active',x===b));refresh();});
-  document.querySelector('.filterbar').addEventListener('click',e=>{
+  $('#filterToggle').addEventListener('click',openDrawer);
+  $('#closeDrawer').addEventListener('click',closeDrawer);
+  $('#drawerOverlay').addEventListener('click',closeDrawer);
+  $('#drawer').addEventListener('click',e=>{
     const b=e.target.closest('.fchip');
-    if(b){const f=b.dataset.facet,v=b.dataset.val;const set=state[f];if(set.has(v))set.delete(v);else set.add(v);b.classList.toggle('active');renderGrid();buildFilters();return;}
+    if(b){const f=b.dataset.facet,v=b.dataset.val;const set=state[f];if(set.has(v))set.delete(v);else set.add(v);b.classList.toggle('active');renderGrid();buildActiveFilters();return;}
     if(e.target.id==='moreType'){state.typeOpen=!state.typeOpen;buildFilters();return;}
     if(e.target.id==='moreRegion'){state.regionOpen=!state.regionOpen;buildFilters();return;}
-    if(e.target.id==='clearBtn'){state.status.clear();state.type.clear();state.region.clear();refresh();return;}
+    if(e.target.id==='clearBtn'){state.status.clear();state.type.clear();state.region.clear();state.q='';state.collection='ALL';$('#search').value='';refresh();closeDrawer();return;}
+  });
+  $('#activeFilters').addEventListener('click',e=>{
+    const c=e.target.closest('.afChip');if(!c)return;
+    const f=c.dataset.facet,v=c.dataset.val;state[f].delete(v);refresh();
   });
   $('#canvasBtn').addEventListener('click',openCanvas);
   $('#exitCanvas').addEventListener('click',closeCanvas);
@@ -231,7 +236,9 @@
   document.addEventListener('click',e=>{const c=e.target.closest('[data-id]');if(c&&!moved)detail(c.dataset.id);});
   $('#close').addEventListener('click',closeDetail);
   $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeDetail();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDetail();closeCanvas();}});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closeDetail();closeCanvas();closeDrawer();}
+  });
 
   // ---------- init ----------
   buildStats();

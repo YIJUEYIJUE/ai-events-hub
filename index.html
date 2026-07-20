@@ -9,7 +9,7 @@
 <title>AI 赛事库 · AI Competitions Hub</title>
 <meta name="description" content="汇集 AI 赛事、AI 电影节与 AI 设计类比赛的公开目录：比赛简介、官方报名入口、奖项奖金、截止时间与地区分类。共收录上千条赛事。">
 <meta name="theme-color" content="#f7f0df">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 <div class="app">
@@ -55,41 +55,44 @@
     <div class="empty" id="empty" hidden>没有符合条件的赛事，试试放宽筛选条件 🔍</div>
   </main>
 
-  <!-- ============ FILTER DRAWER ============ -->
-  <aside class="drawer" id="drawer">
-    <div class="drawerHeader">
-      <h3>筛选赛事</h3>
-      <button class="closeDrawer" id="closeDrawer">×</button>
+  <!-- ============ FILTER MODAL ============ -->
+  <div class="filterModal" id="drawer" aria-hidden="true">
+    <div class="filterCard" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
+      <div class="filterHeader">
+        <h3 id="filterTitle">筛选</h3>
+        <button class="closeFilter" id="closeDrawer">×</button>
+      </div>
+      <div class="filterBody">
+        <div class="drawerSection">
+          <span class="fgLabel">状态</span>
+          <div class="chips" id="fStatus"></div>
+        </div>
+        <div class="drawerSection">
+          <span class="fgLabel">类型</span>
+          <div class="chips" id="fType"></div>
+          <button class="moreBtn" id="moreType" hidden>更多 ▾</button>
+        </div>
+        <div class="drawerSection">
+          <span class="fgLabel">地区</span>
+          <div class="chips" id="fRegion"></div>
+          <button class="moreBtn" id="moreRegion" hidden>更多 ▾</button>
+        </div>
+        <div class="drawerSection">
+          <span class="fgLabel">排序</span>
+          <select id="sort" class="sortSel">
+            <option value="deadline">截止时间 · 近→远</option>
+            <option value="name">名称 · A→Z</option>
+            <option value="recent">最近收录</option>
+          </select>
+        </div>
+      </div>
+      <div class="filterFoot">
+        <button class="clearBtn" id="clearBtn">清空选择</button>
+        <button class="applyBtn" id="applyBtn">确定</button>
+      </div>
     </div>
-    <div class="drawerBody">
-      <div class="drawerSection">
-        <span class="fgLabel">状态 Status</span>
-        <div class="chips" id="fStatus"></div>
-      </div>
-      <div class="drawerSection">
-        <span class="fgLabel">类型 Type</span>
-        <div class="chips" id="fType"></div>
-        <button class="moreBtn" id="moreType" hidden>更多 ▾</button>
-      </div>
-      <div class="drawerSection">
-        <span class="fgLabel">地区 Region</span>
-        <div class="chips" id="fRegion"></div>
-        <button class="moreBtn" id="moreRegion" hidden>更多 ▾</button>
-      </div>
-      <div class="drawerSection">
-        <span class="fgLabel">排序 Sort</span>
-        <select id="sort" class="sortSel">
-          <option value="deadline">截止时间 · 近→远</option>
-          <option value="name">名称 · A→Z</option>
-          <option value="recent">最近收录</option>
-        </select>
-      </div>
-    </div>
-    <div class="drawerFoot">
-      <button class="clearBtn" id="clearBtn">清除筛选</button>
-    </div>
-  </aside>
-  <div class="drawerOverlay" id="drawerOverlay"></div>
+  </div>
+  <div class="filterOverlay" id="drawerOverlay"></div>
 
   <!-- ============ CANVAS / SHOWCASE ============ -->
   <section class="canvas" id="canvas">
@@ -131,6 +134,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

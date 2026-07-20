@@ -2,7 +2,7 @@
   "use strict";
   const DATA = window.EVENT_DATA || {meta:{},items:[]};
   const items = DATA.items || [];
-  const COLORS = {'AI赛事':'#173fe8','AI电影节':'#e96450','AI设计类':'#1f9e8f'};
+  const COLORS = {'AI赛事':'#2a52cc','AI电影节':'#d8503a','AI设计类':'#1f9e8f'};
   const COLS = ['AI赛事','AI电影节','AI设计类'];
   const STATUSES = ['进行中','已截止','待公布'];
   const $ = s => document.querySelector(s);
@@ -25,7 +25,7 @@
       {b:items.length, s:'赛事总数', c:null},
       {b:COLS.length, s:'大类', c:null},
       {b:openNow, s:'进行中', c:'#2e7d32'},
-      {b:withSite, s:'附官网', c:'#173fe8'},
+      {b:withSite, s:'附官网', c:'#2a52cc'},
     ];
     $('#stats').innerHTML = cards.map(x=>{
       const dot = x.c?`<span class="accent" style="background:${x.c}"></span>`:'';
